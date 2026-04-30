@@ -1,0 +1,48 @@
+#Lọc dữ liệu
+#Cần 1 người
+# Công việc: Clean data set và xuất file data set sạch lên github
+#1 số dữ liệu cần lọc (code từ Claude, có thể tùy chỉnh để tối ưu)
+
+# 1. Xử lý duplicates và missing values
+import pandas as pd
+
+df = pd.read_csv('../data/dataset.csv')
+
+# Bỏ hàng trùng track_id (giữ lần xuất hiện đầu tiên)
+df = df.drop_duplicates(subset=['track_id'])
+
+# Bỏ hàng có missing values
+df = df.dropna()
+
+print(f"Còn lại: {df.shape[0]} hàng")
+
+#2. Lọc bỏ bài hát popularity = 0 
+df = df[df['popularity'] > 0]
+print(f"Sau khi lọc popularity=0: {df.shape[0]} hàng")
+
+#3. Bỏ loudness vì nó tương quan 0.76 với energy — giữ lại thông tin không bị trùng:
+df = df.drop(columns=['loudness'])
+
+#Encode track_genre, Vì track_genre là chữ, cần chuyển thành số. Dùng Label Encoding (đơn giản) hoặc One-Hot Encoding (chuẩn hơn):
+# Cách đơn giản: Label Encoding
+# (chỉ dùng được với tree-based models như Random Forest, XGBoost)
+from sklearn.preprocessing import LabelEncoder
+
+le = LabelEncoder()
+df['genre_encoded'] = le.fit_transform(df['track_genre'])
+
+# Chọn features cuối cùng và lưu file sạch:
+features = [
+    'danceability', 'energy', 'valence',
+    'acousticness', 'speechiness', 'instrumentalness',
+    'liveness', 'tempo', 'duration_ms',
+    'key', 'mode', 'genre_encoded'
+]
+
+X = df[features]
+y = df['popularity']
+
+# Lưu lại để người làm modeling dùng
+df_clean = df[features + ['popularity']]
+df_clean.to_csv('../data/dataset_clean.csv', index=False)
+print("Đã lưu dataset_clean.csv")
